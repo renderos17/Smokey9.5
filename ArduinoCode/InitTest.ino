@@ -40,6 +40,8 @@ byte val;
 bool isNotMoving = true;
 bool isGrip = true;
 
+//Making a slight change to test my GitHub skills!
+
 void setup() {
   botStripLeft.begin();
   botStripLeft.show(); 
