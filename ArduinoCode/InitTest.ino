@@ -29,6 +29,7 @@ Servo gripper;
 
 int pos = 0;
 
+//MotorController Pins
 int in1Pin = 22;
 int enablePin1 = 2;
 int in2Pin = 24;
