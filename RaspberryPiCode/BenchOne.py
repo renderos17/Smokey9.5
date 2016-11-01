@@ -1,46 +1,90 @@
 import RPi.GPIO as GPIO
-import pifirmata
+from pifirmata import Arduino, util
 import time
+
 GPIO.setmode(GPIO.BCM)
 
-input_A = 18
-input_B = 23
+#def arduino board for onboard comms
+	board = pyfirmata.Arduino('/dev/ttyACM0')
 
-input_C = 17
-input_D = 22
+#in1-4 are for the arduino to interface with motor controller
+	#these determine direction of current
+	in1pin = board.get_pin('d:22:o')
+	in2pin = board.get_pin('d:24:o')
+	in3pin = board.get_pin('d:26:o')
+	in4pin = board.get_pin('d:28:o')
 
-GPIO.setup(input_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(input_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#for arduino again, this is PWM to attain speed control
+	enablePin1 = board.get_pin('d:2:o')
+	enablePin2 = board.get_pin('d:3:o')
 
-GPIO.setup(input_C, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(input_D, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#determines encoder pins
+	input_A = 18
+	input_B = 23
 
-old_a = True
-old_b = True
+	input_C = 17
+	input_D = 22
 
-old_c = True
-old_d = True
+	GPIO.setup(input_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+	GPIO.setup(input_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-cur_L = 0
-cur_R = 0
+	GPIO.setup(input_C, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+	GPIO.setup(input_D, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-board = pyfirmata.Arduino('/dev/ttyACM0')
+	old_a = True
+	old_b = True
 
-in1pin = board.get_pin('d:22:o')
-in2pin = board.get_pin('d:24:o')
-in3pin = board.get_pin('d:26:o')
-in4pin = board.get_pin('d:28:o')
-enablePin1 = board.get_pin('d:2:o')
-enablePin2 = board.get_pin('d:3:o')
+	old_c = True
+	old_d = True
 
-def setMotor1(speed, reverse):
-	enablePin1.write(speed)
+	cur_L = 0
+	cur_R = 0
+#end of encoder pin defs
+
+
+
+while True:
+	#Robot Periodic Block Begin
+	getEncoder()
+	print(str(cur_L) + " " + str(cur_R))
+	#Robot Periodic Block End
+
+
+
+#Takes a motor speed from 0-255 and direction of current (0,1) to be output
+def setMotor1(speed, direction):
+	if direction == 1:
+		in1pin.write(1)
+		in2pin.write(0)
+	elif direction == 0:
+		in1pin.write(0)
+		in2pin.write(1)
+	else
+		#Kills motors if unintelligible request
+		in1pin.write(0)
+		in2pin.write(0)
+
+	enablePin1.write(speed/255)
 	
+#Takes a motor speed from 0-255 and direction of current (0,1) to be output
+def setMotor2(speed, direction):
+	if direction == 1:
+		in3pin.write(1)
+		in4pin.write(0)
+	elif direction == 0:
+		in3pin.write(0)
+		in4pin.write(1)
+	else
+		#Kills motors if unintelligible request
+		in3pin.write(0)
+		in4pin.write(0)
 
+	enablePin2.write(speed/255)
+
+# gets the current encoder values from both sides
+# values are stored in global 'resultL' and 'resultR'
+# raw data saved
 def getEncoder():
-	# gets the current encoder values from both sides
-	# values are stored in global 'resultL' and 'resultR'
-	# raw data saved
 	global old_a, old_b, old_c, old_d
 	global cur_L, cur_R
 	resultL = 0
@@ -73,11 +117,4 @@ def getEncoder():
 		 # result inverted in code to accomodate wiring scheme
 
 	time.sleep(0.001)
-	
-
-x = 0
-
-while True:
-	getEncoder()
-	print(str(cur_L) + " " + str(cur_R))
 
