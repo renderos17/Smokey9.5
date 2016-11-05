@@ -1,29 +1,29 @@
 import RPi.GPIO as GPIO
-from pyfirmata import Arduino, util
+from pyfirmata import Arduino, ArduinoMega, util
 import time
 
 GPIO.setmode(GPIO.BCM)
 
 #def arduino board for onboard comms
-board = Arduino('/dev/ttyACM0')
+board = ArduinoMega('/dev/ttyACM0')
 
 #in1-4 are for the arduino to interface with motor controller
 	#these determine direction of current
-in1pin = board.get_pin('d:8:o')
-in2pin = board.get_pin('d:9:o')
-in3pin = board.get_pin('d:10:o')
-in4pin = board.get_pin('d:11:o')
+in1pin = board.get_pin('d:22:o')
+in2pin = board.get_pin('d:24:o')
+in3pin = board.get_pin('d:26:o')
+in4pin = board.get_pin('d:28:o')
 
 #for arduino again, this is PWM to attain speed control
-enablePin1 = board.get_pin('d:5:o')
-enablePin2 = board.get_pin('d:6:o')
+enablePin1 = board.get_pin('d:6:p')
+enablePin2 = board.get_pin('d:7:p')
 
 #determines encoder pins
-input_A = 18
-input_B = 23
+input_A = 17
+input_B = 22
 
-input_C = 17
-input_D = 22
+input_C = 18
+input_D = 23
 
 GPIO.setup(input_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(input_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -54,8 +54,8 @@ def setMotor1(speed, direction):
 		#in1pin.write(0)
 		#in2pin.write(0)
 
-	enablePin1.write(speed)
-	print(speed)
+	enablePin1.write(speed/255.0)
+	#print(speed/255.0)
 	
 #Takes a motor speed from 0-255 and direction of current (0,1) to be output
 def setMotor2(speed, direction):
@@ -70,8 +70,8 @@ def setMotor2(speed, direction):
 		#in3pin.write(0)
 		#in4pin.write(0)
 
-	enablePin2.write(speed)
-	print(speed)
+	enablePin2.write(speed/255.0)
+	#print(speed/255.0)
 
 # gets the current encoder values from both sides
 # values are stored in global 'resultL' and 'resultR'
@@ -107,15 +107,24 @@ def getEncoder():
 	if resultR != 0 :
 		cur_R = cur_R - resultR
 		 # result inverted in code to accomodate wiring scheme
-
-	time.sleep(0.001)
+	print(str(cur_L) + " " + str(cur_R))
+	#time.sleep(0.001)
 	
 while True:
 	#Robot Periodic Block Begin
-	#getEncoder()
-	#print(str(cur_L) + " " + str(cur_R))
-	setMotor1(1,1)
-	setMotor2(1,0)
-	print('done')
+	setMotor1(255,0)
+	setMotor2(255,0)
+	#for i in range(0, 256):
+		#setMotor1(i,0)
+		#setMotor2(i,0)
+		#print('done')
+		#getEncoder()
+		#time.sleep(0.01)
+	#for i in range(0, 256):
+		#setMotor1(i,1)
+		#setMotor2(i,1)
+		#print('done')
+		#getEncoder()
+		#time.sleep(0.01)
 	#Robot Periodic Block End
 
