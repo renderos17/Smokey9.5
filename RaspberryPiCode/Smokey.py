@@ -3,6 +3,11 @@ from pyfirmata import Arduino, ArduinoMega, util
 import SocketServer
 import time
 
+#This code manages the robot itself.
+#It also handles communication between the arduino and the motor controller
+#Created by Alexis Renderos
+
+
 GPIO.setmode(GPIO.BCM)
 
 #def arduino board for onboard comms
@@ -19,6 +24,13 @@ lDrives = [in1pin, in2pin, in3pin, in4pin]
 #for arduino again, this is PWM to attain speed control
 enablePin1 = board.get_pin('d:6:p')
 enablePin2 = board.get_pin('d:7:p')
+
+#for the arduino servo control::gripper
+gripper1 = board.get_pin('d:9:s')
+
+def grip1(a):
+    gripper1.write(a)
+    print 'gripper changed'
 
 #Takes a motor speed from 0-255 and direction of current (0,1) to be output
 def setMotor1(speed, direction):
@@ -60,6 +72,8 @@ def MotorOff():
 	enablePin1.write(0)
 	enablePin2.write(0)
 	print 'motoroff'
+
+
 
 # Settings for the Remote server
 portListen = 9038

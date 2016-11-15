@@ -26,6 +26,8 @@
 #include <Servo.h>
 #include <Wire.h>
 #include <Firmata.h>
+#include <SPI.h>
+#include <Adafruit_DotStar.h>
 
 #define I2C_WRITE                   B00000000
 #define I2C_READ                    B00001000
@@ -35,6 +37,18 @@
 #define I2C_10BIT_ADDRESS_MODE_MASK B00100000
 #define MAX_QUERIES                 8
 #define REGISTER_NOT_SPECIFIED      -1
+
+#define NUMPIXELS1 12
+#define NUMPIXELS2 12
+
+#define DATAPIN1   7
+#define CLOCKPIN1  6
+#define DATAPIN2   5
+#define CLOCKPIN2  4
+
+Adafruit_DotStar botStripLeft = Adafruit_DotStar(NUMPIXELS1, DATAPIN1, CLOCKPIN1, DOTSTAR_BGR);
+Adafruit_DotStar botStripRight = Adafruit_DotStar(NUMPIXELS2, DATAPIN2, CLOCKPIN2, DOTSTAR_BGR);
+
 
 // the minimum interval for sampling analog input
 #define MINIMUM_SAMPLING_INTERVAL 10
@@ -665,8 +679,54 @@ void systemResetCallback()
   isResetting = false;
 }
 
+void doubleBotColor(uint32_t c) { //C is color
+  for (uint16_t i = 0; i < botStripLeft.numPixels(); i++) {
+    botStripLeft.setPixelColor(i, c);
+    botStripRight.setPixelColor(i, c);
+    botStripLeft.show();
+    botStripRight.show();
+  }
+}
+
+void doubleBotSepColor(uint32_t c1, uint32_t c2) {
+  for (uint16_t i = 0; i < botStripLeft.numPixels(); i++) {
+    botStripLeft.setPixelColor(i, c1);
+    botStripRight.setPixelColor(i, c2);
+    botStripLeft.show();
+    botStripRight.show();
+  }
+}
+
+void rainbow(){
+  for (int x = 0;  x < 255; x++) {
+      doubleBotColor(Wheel(x));
+      delay(5);
+          if (Serial.available() > 0)
+            break;
+  }
+}
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return botStripLeft.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return botStripLeft.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return botStripLeft.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
 void setup()
 {
+  botStripLeft.begin();
+  botStripLeft.show(); 
+  botStripRight.begin();
+  botStripRight.show();
+  doubleBotColor(botStripLeft.Color(0, 0, 255));
+   
   Firmata.setFirmwareVersion(FIRMATA_MAJOR_VERSION, FIRMATA_MINOR_VERSION);
 
   Firmata.attach(ANALOG_MESSAGE, analogWriteCallback);
