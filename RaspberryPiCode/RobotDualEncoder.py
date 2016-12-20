@@ -59,9 +59,6 @@ def getEncoder():
 		 # result inverted in code to accomodate wiring scheme
 
 	time.sleep(0.001)
-	
-
-x = 0
 
 while True:
 	getEncoder()

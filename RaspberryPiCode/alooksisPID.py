@@ -39,7 +39,7 @@ while (gCurrent > gTarget + 1/(gTarget*100)) | (gCurrent < gTarget - 1/(gTarget*
 	print (gCurrent)
 	#print (pError)
 
-gTarget = 2000
+gTarget = 100
 
 while (gCurrent > gTarget + 1/(gTarget*100)) | (gCurrent < gTarget - 1/(gTarget*100)):
 	gCurrent = alooksisPID(gP, gI, gD, gTarget, gCurrent, 1)
