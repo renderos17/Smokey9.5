@@ -10,14 +10,20 @@ import pygame
 # Settings for the RemoteJoyBorg client
 broadcastIP = '192.168.1.100'           # IP address to send to, 255 in one or more positions is a broadcast / wild-card
 broadcastPort = 9038                    # What message number to send with
-leftDrive = 0                           # Drive number for left motor
-rightDrive = 2                          # Drive number for right motor
+leftDrive = 0                           # Drive number for left motor in terms of output arr
+rightDrive = 2                          # Drive number for right motor in terms of output arr
 interval = 0.05                         # Time between updates in seconds, smaller responds faster but uses more processor time
 regularUpdate = True                    # If True we send a command at a regular interval, if False we only send commands when keys are pressed or released
-axisUpDown = 0                          # Joystick axis to read for up / down position
-axisUpDownInverted = False              # Set this to True if up and down appear to be swapped
-axisLeftRight = 1                       # Joystick axis to read for left / right position
-axisLeftRightInverted = False           # Set this to True if left and right appear to be swapped
+
+# Settings for the Controller Map
+gripButton = 2 # the "A" button
+driveAxisX = 1
+driveAxisY = 0
+driveAxisXinverted = False
+driveAxisYinverted = False
+deadX = 0.1 # Modifies deadzone on Left/Right axis of travel
+deadY = 0.1 # Modifies deadzone on Up/Down axis of travel
+
 
 # Setup the connection for sending on
 sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)       # Create the socket
@@ -32,27 +38,12 @@ global moveLeft
 global moveRight
 global moveQuit
 
-global gActuate
-
-global deadX
-global deadY
-
-global speedX
-global speedY
-
 hadEvent = True
 moveUp = False
 moveDown = False
 moveLeft = False
 moveRight = False
 moveQuit = False
-gActuate = False
-
-deadX = 0.1 # Modifies deadzone on Up/Down axis of travel
-deadY = 0.1 # Modifies deadzone on Up/Down axis of travel
-
-speedX = 0
-speedY = 0
 
 pygame.init()
 pygame.joystick.init()
@@ -63,6 +54,12 @@ pygame.display.set_caption("Smokey9.5 Driver Station - Press [ESC] to quit")
 
 def mapScalar(val, curLow, curHigh, toLow, toHigh):
     return (val - curLow) * (toHigh - toLow) / (curHigh - curLow) + toLow
+
+def getArcadeLeft(xScala, yScala):
+    return yScala + xScala
+
+def getArcadeRight(xScala, yScala):
+    return yScala - xScala
 
 # Function to handle pygame events
 def PygameHandler(events):
@@ -84,28 +81,28 @@ def PygameHandler(events):
             hadEvent = True
             if event.key == pygame.K_ESCAPE:
                 moveQuit = True
-        #elif event.type == pygame.JOYBUTTONDOWN:
+        elif event.type == pygame.JOYBUTTONDOWN:
             # A button has been pressed, lets process it further.
-
+            gripAct = joystick.get_axis(gripButton)
         elif event.type == pygame.JOYAXISMOTION:
             # A joystick has been moved, read axis positions (-1 to +1)
             hadEvent = True
-            upDown = joystick.get_axis(axisUpDown)
-            leftRight = joystick.get_axis(axisLeftRight)
+            upDown = joystick.get_axis(driveAxisY)
+            leftRight = joystick.get_axis(driveAxisX)
             # Invert any axes which are incorrect
-            if axisUpDownInverted:
+            if driveAxisYinverted:
                 upDown = -upDown
-            if axisLeftRightInverted:
+            if driveAxisXinverted:
                 leftRight = -leftRight
             # Determine Up / Down values
             if upDown > deadX:
                 moveUp = True
                 moveDown = False
-                upDown = mapScalar(upDown, 0 + deadX, 1, 0, 255)
+                upDown = mapScalar(upDown, -1, 1, -255, 255)
             elif upDown < -deadX:
                 moveUp = False
                 moveDown = True
-                upDown = mapScalar(upDown, -1, 0 - deadX, 0, 255)
+                upDown = mapScalar(upDown, -1, 1, -255, 255)
             else:
                 moveUp = False
                 moveDown = False
@@ -114,16 +111,15 @@ def PygameHandler(events):
             if leftRight < -deadY:
                 moveLeft = True
                 moveRight = False
-                leftRight = mapScalar(leftRight, 0 + deadY, 1, 0, 255)
+                leftRight = mapScalar(leftRight, -1, 1, -255, 255)
             elif leftRight > deadY:
                 moveLeft = False
                 moveRight = True
-                leftRight = mapScalar(leftRight, -1, 0 - deadY, 0, 255)
+                leftRight = mapScalar(leftRight, -1, 1, -255, 255)
             else:
                 moveLeft = False
                 moveRight = False
                 leftRight = 0
-        print str(upDown) + ' ' + str(leftRight)
 try:
     print 'Press [ESC] to quit'
     # Loop indefinitely
@@ -133,12 +129,16 @@ try:
         if hadEvent or regularUpdate:
             # Keys have changed, generate the command list based on keys
             hadEvent = False
-            driveCommands = ['X', 'X', 'X', 'X']                    # Default to do not change
+            driveCommands = ['X', 'X', 'X', 'X', 'X', 'X', 'X']
+            # [DirectionL, DirectionL, DirectionR, DirectionR, SpeedL, SpeedR, GRIP]
+            scala = [getArcadeLeft(leftRight,upDown),getArcadeRight(leftRight,upDown)] # Order is LEFT, RIGHT 
+            driveCommands[rightDrive+2] = scala[0]
+            driveCommands[rightDrive+3] = scala[1]
             if moveQuit:
                 break
             elif moveLeft:
                 driveCommands[leftDrive] = 'OFF'
-                driveCommands[leftDrive+1] = 'ON'
+                driveCommands[leftDrive+1] = 'ON'         
                 driveCommands[rightDrive] = 'ON'
                 driveCommands[rightDrive+1] = 'OFF'
             elif moveRight:
@@ -160,13 +160,18 @@ try:
                 # None of our expected keys, stop
                 driveCommands[leftDrive] = 'OFF'
                 driveCommands[leftDrive+1] = 'OFF'
+                driveCommands[rightDrive+2] = 0
                 driveCommands[rightDrive] = 'OFF'
                 driveCommands[rightDrive+1] = 'OFF'
+                driveCommands[rightDrive+3] = 0
+            if gripAct == 1:
+                driveCommands[rightDrive+4] = 'GRIP'
+
             # Send the drive commands
             command = ''
             for driveCommand in driveCommands:
                 command += driveCommand + ','
-            command = command[:-1]                                  # Strip the trailing comma
+            command = command[:-1] # Strip the trailing comma
             sender.sendto(command, (broadcastIP, broadcastPort))
         # Wait for the interval period
         time.sleep(interval)

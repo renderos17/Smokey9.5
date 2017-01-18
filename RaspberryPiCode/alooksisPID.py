@@ -4,8 +4,6 @@ global gTarget
 global gP
 global gI
 global gD
-global integral
-global pError
 
 def alooksisPID(kP, kI, kD, target, current, dT):
 	global pError
